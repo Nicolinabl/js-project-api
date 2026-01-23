@@ -11,33 +11,33 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-// Start defining your routes here
+// ROUTES
+
+// Path params
 app.get("/", (req, res) => {
   const endpoints = listEndpoints(app)
   res.json({
-    message: "Welcome to tha happy thoughts API",
+    message: "Welcome to the happy thoughts API. Here is a list of all endpoints",
     endpoints: endpoints,
   })
 })
 
-// returns all messages in array
 app.get("/messages", (req, res) => {
   res.json(data)
 })
 
-// filters messages and returns all liked messages
 app.get("/messages/liked", (req, res) => {
   let likedMessages = data.filter(message => message.hearts > 0)
+  
   res.json(likedMessages)
 })
 
-// filters messages and returns those containing the word happy
 app.get("/messages/happy", (req, res) => {
   let happyMessages = data.filter(message => message.message.toLowerCase().includes("happy"))
+
   res.json(happyMessages)
 })
 
-// returns a single message with specific id, displays error message if id does not exist
 app.get("/messages/:id", (req, res) => {
   const message = data.find(message => message._id === req.params.id)
 
@@ -47,6 +47,17 @@ app.get("/messages/:id", (req, res) => {
 
   res.json(message)
 })
+
+// query params
+app.get("/hearts", (req, res) => {
+  let result = data
+
+  if (req.query.liked === "true") {
+    result = result.filter(message => message.hearts > 0)
+  }
+
+  res.json(result)
+ })
 
 // Start the server
 app.listen(port, () => {
