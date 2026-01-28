@@ -2,18 +2,36 @@ import cors from "cors"
 import express from "express"
 import data from "./data.json" with { type: "json" }
 import listEndpoints from "express-list-endpoints"
+import mongoose from "mongoose"
 
-// Defines the port the app will run on. Defaults to 8080, but can be overridden
+// NOTE - add .env file?
+const mongoUrl = process.env.MONGO_URL || "mongodb://127.0.0.1/project-api"
+mongoose.connect(mongoUrl)
+
 const port = process.env.PORT || 8080
 const app = express()
 
-// Add middlewares to enable cors and json body parsing
 app.use(cors())
 app.use(express.json())
 
-// ROUTES
+// Message schema
+const messageSchema = new mongoose.Schema({
+  message: {
+    type: String,
+    required: true,
+    minlength: 1,
+  },
+  hearts: {
+    type: Number,
+    default: 0
+  },
+  // timestamps?
+})
 
-// Path params
+// Model based on schema
+const Message = mongoose.model('Message', messageSchema)
+
+// ROUTES
 app.get("/", (req, res) => {
   const endpoints = listEndpoints(app)
   res.json({
@@ -48,7 +66,6 @@ app.get("/messages/:id", (req, res) => {
   res.json(message)
 })
 
-// query params
 app.get("/hearts", (req, res) => {
   let result = data
 
