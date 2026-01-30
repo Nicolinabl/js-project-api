@@ -19,7 +19,8 @@ const messageSchema = new mongoose.Schema({
   message: {
     type: String,
     required: true,
-    minlength: 1,
+    minlength: 5,
+    // not matching frontend
   },
   hearts: {
     type: Number,
@@ -145,8 +146,6 @@ app.get("/messages/:id", async (req, res) => {
 
 // ROUTES (POST)
 
-// TODO: Liking a thought
-
 // POST a message 
 app.post('/messages', async (req, res) => {
   try {
@@ -168,11 +167,10 @@ app.listen(port, () => {
 })
 
 // TODO Today
-// 2. Validate data both in the model (Mongoose) and in your POST routes 
-// 4. Frontend should be updated with the possibility to Update and Delete a thought.
-// 5. Deploy database on Render
-// 6. Connect happy thoughts frontend to new API
+// 1. Frontend should be updated with the possibility to Update and Delete a thought.
+// 2. Liking a thought route
+
+
 
 // TODO: Signing up (next week)
-
 // TODO: signing in (next week)
