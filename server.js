@@ -5,7 +5,6 @@ import listEndpoints from "express-list-endpoints"
 import mongoose from "mongoose"
 import "dotenv/config"
 
-// NOTE - add .env file?
 const mongoUrl = process.env.MONGO_URL || "mongodb://127.0.0.1/messages"
 mongoose.connect(mongoUrl)
 
@@ -28,7 +27,7 @@ const messageSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
-    default: () => Date.now()
+    default: Date.now
   }
 })
 
@@ -76,8 +75,9 @@ app.get("/", (req, res) => {
 // GET all messages
 app.get("/messages", async (req, res) => {
   try {
-    const messages = await Message.find()
+    const messages = await Message.find().sort({ createdAt: 'desc' })
     res.json(messages)
+
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch messages "})
   }  
@@ -147,25 +147,20 @@ app.get("/messages/:id", async (req, res) => {
 
 // TODO: Liking a thought
 
-// POST a message (authenticated?)
-// TODO Error handling
+// POST a message 
 app.post('/messages', async (req, res) => {
-  const message = new Message({
-    message: req.body.message,
-    hearts: req.body.hearts
-  })
-  await message.save()
-  res.json(message)
+  try {
+    const message = new Message({
+      message: req.body.message,
+      hearts: req.body.hearts
+    })
+    await message.save()
+    res.status(200).json(message)
+  } catch (error) {
+    res.status(400).json({ message: 'Could not save the message', errors:error.errors })
+  }
+  
 })
-
-// TODO: Update a message (authenticated)
-
-// TODO: Delete a message (frontend)
-
-// TODO: Signing up (next week)
-
-// TODO: signing in (next week)
-
 
 // Start the server
 app.listen(port, () => {
@@ -177,3 +172,7 @@ app.listen(port, () => {
 // 4. Frontend should be updated with the possibility to Update and Delete a thought.
 // 5. Deploy database on Render
 // 6. Connect happy thoughts frontend to new API
+
+// TODO: Signing up (next week)
+
+// TODO: signing in (next week)
