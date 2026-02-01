@@ -144,8 +144,30 @@ app.get("/messages/:id", async (req, res) => {
 
 })
 
-// ROUTES (POST)
+// ROUTES (PATCH)
+// send likes
+app.patch("/messages/:id/like", async (req, res) => {
+  try {
+    const message = await Message.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { hearts: 1 } },
+      { new: true }
+    )
 
+    if (!message) {
+      return res.status(404).json({ error: "Messsage not found" })
+    }
+
+    res.json(message)
+
+  } catch (error) {
+    res.status(400).json({ error: "could not update likes" })
+  }
+})
+
+// TODO UPDATE a message
+
+// ROUTES (POST)
 // POST a message 
 app.post('/messages', async (req, res) => {
   try {
@@ -161,16 +183,15 @@ app.post('/messages', async (req, res) => {
   
 })
 
+// TODO DELETE a message
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`)
 })
 
-// TODO Today
-// 1. Frontend should be updated with the possibility to Update and Delete a thought.
-// 2. Liking a thought route
-
-
-
-// TODO: Signing up (next week)
-// TODO: signing in (next week)
+// TODOS
+// Frontend should be updated with the possibility to Update a thought.
+// Problems with timestamps. not correct timeAgo showed
+// Signing up (next week)
+// signing in (next week)
