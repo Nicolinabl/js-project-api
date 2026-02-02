@@ -183,7 +183,19 @@ app.post('/messages', async (req, res) => {
   
 })
 
-// TODO DELETE a message
+// DELETE a message
+app.delete("/messages/:id", async (req, res) => {
+  try {
+    const deletedMessage = await Message.findByIdAndDelete(req.params.id)
+
+    if (!deletedMessage) {
+      return res.status(404).json({ error: "Message not found" })
+    } 
+    res.status(200).json(deletedMessage)
+  } catch (error) {
+    res.status(400).json({ error: "Invalid message id" })
+  }
+})
 
 // Start the server
 app.listen(port, () => {
