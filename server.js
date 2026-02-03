@@ -4,6 +4,8 @@ import express, { application } from "express"
 import listEndpoints from "express-list-endpoints"
 import mongoose from "mongoose"
 import "dotenv/config"
+import crypto from "crypto"
+import bcrypt from "bcrypt"
 
 const mongoUrl = process.env.MONGO_URL || "mongodb://127.0.0.1/messages"
 mongoose.connect(mongoUrl)
@@ -20,7 +22,6 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true,
     minlength: 5,
-    // not matching frontend
   },
   hearts: {
     type: Number,
@@ -32,8 +33,44 @@ const messageSchema = new mongoose.Schema({
   }
 })
 
-// Model based on schema
+// Message model
 const Message = mongoose.model('Message', messageSchema)
+
+// User schema
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    unique: true
+  },
+  email: {
+    type: String,
+    unique: true
+  },
+  password: {
+    type: String,
+    required: true
+  }, 
+  accessToken: {
+    type: String,
+    default: () => crypto.randomBytes(128).toString('hex')
+    // default access token using crypto library
+  }
+})
+
+// User model
+const User = mongoose.model('User', userSchema)
+
+// Look up user based on the access token stored in the header 
+const authenticateUser = async (req, res, next) => {
+  const user = await User.findOne({ accessToken: req.header('Authorization') })
+  if (user){
+    req.user = user
+    // next function allows the protected endpoint to continue execution
+    next()
+  } else {
+    res.status(401).json({loggedOut: true})
+  }
+}
 
 // Seed database
 if (process.env.RESET_DATABASE) {
@@ -64,7 +101,7 @@ if (process.env.RESET_DATABASE) {
   seedDatabase()
 }
 
-// ROUTES (GET)
+// Show all available endpoints
 app.get("/", (req, res) => {
   const endpoints = listEndpoints(app)
   res.json({
@@ -73,7 +110,42 @@ app.get("/", (req, res) => {
   })
 })
 
-// GET all messages
+// POST-route: register user
+// user registers with name, email and password. We get an access token when they log in
+app.post('/users', async (req, res) => {
+  try {
+    const { name, email, password } = req.body
+
+    const salt = bcrypt.genSaltSync()
+    const user = new User({ name, email, password: bcrypt.hashSync(password, salt) })
+
+    user.save()
+
+    res.status(201).json({ id:user._id, accessToken: user.accessToken })
+
+  } catch(error) {
+    res.status(400).json({ message: 'Could not create user', errors:error.errors })
+  }
+})
+
+// 
+app.get('/secrets', authenticateUser)
+app.get('/secrets', (req, res) => {
+  res.json({secret: 'This is a super secret message'})
+})
+
+// POST-route: log in (doesnt create the user, it finds one)
+app.post('/sessions', async(req, res) => {
+  const user = await User.findOne({ email: req.body.email })
+
+  if (user && bcrypt.compareSync(req.body.password, user.password)) {
+    res.json({ userID: user._id , accessToken: user.accessToken})
+  } else {
+    res.json({ notFound: true })
+  }
+})
+
+// GET-route: show all messages
 app.get("/messages", async (req, res) => {
   try {
     const messages = await Message.find().sort({ createdAt: 'desc' })
@@ -84,7 +156,7 @@ app.get("/messages", async (req, res) => {
   }  
 })
 
-// GET liked messages
+// GET-route: show liked messages
 app.get("/messages/liked", async (req, res) => {
   try {
     let likedMessages = await Message.find ({  hearts: { $gt: 0 } })
@@ -111,7 +183,7 @@ app.get("/messages/liked", async (req, res) => {
 //   res.json(result)
 //  })
 
-// GET messages including word happy
+// GET-route: show messages including word happy
 app.get("/messages/happy", async (req, res) => {
   try {
     let happyMessages = await Message.find({ message: { $regex: "happy" } })
@@ -127,7 +199,7 @@ app.get("/messages/happy", async (req, res) => {
     }
   })
 
-// GET a single message 
+// GET-route: show a single message according to id
 app.get("/messages/:id", async (req, res) => {
   try {
     const message = await Message.findById(req.params.id)
@@ -144,8 +216,7 @@ app.get("/messages/:id", async (req, res) => {
 
 })
 
-// ROUTES (PATCH)
-// send likes
+// PATCH-route: send likes
 app.patch("/messages/:id/like", async (req, res) => {
   try {
     const message = await Message.findByIdAndUpdate(
@@ -167,8 +238,7 @@ app.patch("/messages/:id/like", async (req, res) => {
 
 // TODO UPDATE a message
 
-// ROUTES (POST)
-// POST a message 
+// POST-route: post a message 
 app.post('/messages', async (req, res) => {
   try {
     const message = new Message({
@@ -183,7 +253,7 @@ app.post('/messages', async (req, res) => {
   
 })
 
-// DELETE a message
+// DELETE-route: delete a message
 app.delete("/messages/:id", async (req, res) => {
   try {
     const deletedMessage = await Message.findByIdAndDelete(req.params.id)
