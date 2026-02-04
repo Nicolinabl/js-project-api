@@ -38,13 +38,10 @@ const Message = mongoose.model('Message', messageSchema)
 
 // User schema
 const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    unique: true
-  },
   email: {
     type: String,
-    unique: true
+    required: true,
+    unique: true,
   },
   password: {
     type: String,
@@ -62,13 +59,22 @@ const User = mongoose.model('User', userSchema)
 
 // Look up user based on the access token stored in the header 
 const authenticateUser = async (req, res, next) => {
-  const user = await User.findOne({ accessToken: req.header('Authorization') })
-  if (user){
-    req.user = user
-    // next function allows the protected endpoint to continue execution
-    next()
-  } else {
-    res.status(401).json({loggedOut: true})
+  try {
+    const user = await User.findOne({ 
+      accessToken: req.header('Authorization').replace("Bearer ", ""),
+    })
+    if (user){
+      req.user = user
+      // next function allows the protected endpoint to continue execution
+      next()
+    } else {
+      res.status(401).json({
+        message: "Authentication mossing or invalid",
+        loggedOut: true 
+      })
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message })
   }
 }
 
@@ -101,6 +107,8 @@ if (process.env.RESET_DATABASE) {
   seedDatabase()
 }
 
+// ROUTES
+
 // Show all available endpoints
 app.get("/", (req, res) => {
   const endpoints = listEndpoints(app)
@@ -112,19 +120,41 @@ app.get("/", (req, res) => {
 
 // POST-route: register user
 // user registers with name, email and password. We get an access token when they log in
-app.post('/users', async (req, res) => {
+app.post('/signup', async (req, res) => {
   try {
-    const { name, email, password } = req.body
+    const { email, password } = req.body
 
+    const existingUser = await User.findOne({
+      email: email.toLowerCase() })
+    
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Could not create user"
+      })
+    }
+    
     const salt = bcrypt.genSaltSync()
-    const user = new User({ name, email, password: bcrypt.hashSync(password, salt) })
+    const hashedPassword = bcrypt.hashSync(password.salt)
+    const user = new User({ email, password: hashedPassword })
 
-    user.save()
+    await user.save()
 
-    res.status(201).json({ id:user._id, accessToken: user.accessToken })
-
-  } catch(error) {
-    res.status(400).json({ message: 'Could not create user', errors:error.errors })
+    res.status(201).json({ 
+      success: true,
+      message: "User created successfully",
+      response: {
+        email: user.email,
+        id: user._id,
+        accessToken: user.accessToken,
+      },
+     })
+    } catch(error) {
+    res.status(400).json({ 
+      success: false,
+      message: 'Could not create user', 
+      response: error, 
+    })
   }
 })
 
@@ -135,13 +165,33 @@ app.get('/secrets', (req, res) => {
 })
 
 // POST-route: log in (doesnt create the user, it finds one)
-app.post('/sessions', async(req, res) => {
-  const user = await User.findOne({ email: req.body.email })
+app.post('/login', async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.body.email.toLowerCase() })
 
-  if (user && bcrypt.compareSync(req.body.password, user.password)) {
-    res.json({ userID: user._id , accessToken: user.accessToken})
-  } else {
-    res.json({ notFound: true })
+    if (user && bcrypt.compareSync(req.body.password, user.password)) {
+      res.json({ 
+        success: true,
+        message: "Logged in successfully",
+        response: {
+          email: user.email,
+          id: user._id,
+          accessToken: user.accessToken
+        },
+      })
+    } else {
+      res.status(401).json({
+        success:false,
+        message: "Email or password invalid",
+        response: null,
+      })
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      response: error
+    })
   }
 })
 
