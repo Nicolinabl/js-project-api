@@ -70,7 +70,7 @@ const authenticateUser = async (req, res, next) => {
       next()
     } else {
       res.status(401).json({
-        message: "Authentication mossing or invalid",
+        message: "Authentication missing or invalid",
         loggedOut: true 
       })
     }
@@ -159,11 +159,10 @@ app.post('/users/signup', async (req, res) => {
   }
 })
 
-// 
-app.get('/secrets', authenticateUser)
-app.get('/secrets', (req, res) => {
-  res.json({secret: 'This is a super secret message'})
-})
+// app.get('/secrets', authenticateUser)
+// app.get('/secrets', (req, res) => {
+//   res.json({secret: 'This is a super secret message'})
+// })
 
 // POST-route: log in (doesnt create the user, it finds one)
 app.post('/users/login', async (req, res) => {
@@ -291,7 +290,7 @@ app.patch("/messages/:id/like", async (req, res) => {
 // TODO UPDATE a message
 
 // POST-route: post a message 
-app.post('/messages', async (req, res) => {
+app.post('/messages', authenticateUser, async (req, res) => {
   try {
     const message = new Message({
       message: req.body.message,
