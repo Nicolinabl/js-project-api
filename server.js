@@ -1,6 +1,5 @@
 import cors from "cors"
 import express, { application } from "express"
-// import data from "./data.json" with { type: "json" }
 import listEndpoints from "express-list-endpoints"
 import mongoose from "mongoose"
 import "dotenv/config"
@@ -59,25 +58,25 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema)
 
 // Look up user based on the access token stored in the header 
-const authenticateUser = async (req, res, next) => {
-  try {
-    const user = await User.findOne({ 
-      accessToken: req.header('Authorization').replace("Bearer ", ""),
-    })
-    if (user){
-      req.user = user
-      // next function allows the protected endpoint to continue execution
-      next()
-    } else {
-      res.status(401).json({
-        message: "Authentication missing or invalid",
-        loggedOut: true 
-      })
-    }
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error", error: error.message })
-  }
-}
+// const authenticateUser = async (req, res, next) => {
+//   try {
+//     const user = await User.findOne({ 
+//       accessToken: req.header('Authorization').replace("Bearer ", ""),
+//     })
+//     if (user){
+//       req.user = user
+//       // next function allows the protected endpoint to continue execution
+//       next()
+//     } else {
+//       res.status(401).json({
+//         message: "Authentication missing or invalid",
+//         loggedOut: true 
+//       })
+//     }
+//   } catch (error) {
+//     res.status(500).json({ message: "Internal server error", error: error.message })
+//   }
+// }
 
 // Seed database
 if (process.env.RESET_DATABASE) {
@@ -222,18 +221,6 @@ app.get("/messages/liked", async (req, res) => {
   }
 })
 
-// GET liked messages (query param)
-// TODO Error handling
-// app.get("/hearts", (req, res) => {
-//   let result = data
-
-//   if (req.query.liked === "true") {
-//     result = result.filter(message => message.hearts > 0)
-//   }
-
-//   res.json(result)
-//  })
-
 // GET-route: show messages including word happy
 app.get("/messages/happy", async (req, res) => {
   try {
@@ -277,7 +264,7 @@ app.patch("/messages/:id/like", async (req, res) => {
     )
 
     if (!message) {
-      return res.status(404).json({ error: "Messsage not found" })
+      return res.status(404).json({ error: "Message not found" })
     }
 
     res.json(message)
@@ -323,8 +310,16 @@ app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`)
 })
 
-// TODOS
-// Frontend should be updated with the possibility to Update a thought.
-// Problems with timestamps. not correct timeAgo showed
-// Signing up (next week)
-// signing in (next week)
+
+
+// GET liked messages (query param)
+// TODO Error handling
+// app.get("/hearts", (req, res) => {
+//   let result = data
+
+//   if (req.query.liked === "true") {
+//     result = result.filter(message => message.hearts > 0)
+//   }
+
+//   res.json(result)
+//  })
