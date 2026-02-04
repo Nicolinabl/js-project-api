@@ -6,6 +6,7 @@ import mongoose from "mongoose"
 import "dotenv/config"
 import crypto from "crypto"
 import bcrypt from "bcrypt"
+import 'dotenv/config' 
 
 const mongoUrl = process.env.MONGO_URL || "mongodb://127.0.0.1/messages"
 mongoose.connect(mongoUrl)
@@ -50,7 +51,7 @@ const userSchema = new mongoose.Schema({
   accessToken: {
     type: String,
     default: () => crypto.randomBytes(128).toString('hex')
-    // default access token using crypto library
+    // random access token created using crypto library
   }
 })
 
@@ -120,7 +121,7 @@ app.get("/", (req, res) => {
 
 // POST-route: register user
 // user registers with name, email and password. We get an access token when they log in
-app.post('/signup', async (req, res) => {
+app.post('users/signup', async (req, res) => {
   try {
     const { email, password } = req.body
 
@@ -130,7 +131,7 @@ app.post('/signup', async (req, res) => {
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: "Could not create user"
+        message: "User with this email already exists"
       })
     }
     
@@ -140,7 +141,7 @@ app.post('/signup', async (req, res) => {
 
     await user.save()
 
-    res.status(201).json({ 
+    res.status(200).json({ 
       success: true,
       message: "User created successfully",
       response: {
@@ -165,11 +166,12 @@ app.get('/secrets', (req, res) => {
 })
 
 // POST-route: log in (doesnt create the user, it finds one)
-app.post('/login', async (req, res) => {
+app.post('users/login', async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.body.email.toLowerCase() })
+    const { email, password } = req.body
+    const user = await User.findOne({ email: email.toLowerCase() })
 
-    if (user && bcrypt.compareSync(req.body.password, user.password)) {
+    if (user && bcrypt.compareSync(password, user.password)) {
       res.json({ 
         success: true,
         message: "Logged in successfully",
