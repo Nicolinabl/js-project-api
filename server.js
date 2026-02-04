@@ -277,7 +277,8 @@ app.patch("/messages/:id/like", async (req, res) => {
 // TODO UPDATE a message
 
 // POST-route: post a message 
-app.post('/messages', authenticateUser, async (req, res) => {
+// TODO: authenticateUser
+app.post('/messages', async (req, res) => {
   try {
     const message = new Message({
       message: req.body.message,
