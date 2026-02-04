@@ -121,7 +121,7 @@ app.get("/", (req, res) => {
 
 // POST-route: register user
 // user registers with name, email and password. We get an access token when they log in
-app.post('users/signup', async (req, res) => {
+app.post('/users/signup', async (req, res) => {
   try {
     const { email, password } = req.body
 
@@ -166,7 +166,7 @@ app.get('/secrets', (req, res) => {
 })
 
 // POST-route: log in (doesnt create the user, it finds one)
-app.post('users/login', async (req, res) => {
+app.post('/users/login', async (req, res) => {
   try {
     const { email, password } = req.body
     const user = await User.findOne({ email: email.toLowerCase() })
