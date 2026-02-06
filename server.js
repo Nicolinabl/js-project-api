@@ -76,35 +76,6 @@ const authenticateUser = async (req, res, next) => {
   }
 }
 
-// Seed database
-if (process.env.RESET_DATABASE) {
-
-  const seedDatabase = async () => {
-    // Avoid content in api from being duplicated on refresh
-    await Message.deleteMany()
-
-    const testMessage = new Message({
-      message: 'Backend is fun!',
-      hearts: 5
-    })
-    await testMessage.save()
-
-    const testMessageTwo = new Message({
-      message: 'I get happy when it is working!',
-      hearts: 1
-    })
-    await testMessageTwo.save()
-
-    const testMessageThree = new Message({
-      message: 'Snow today, yay!!',
-      hearts: 0
-    })
-    await testMessageThree.save()
-
-  }
-  seedDatabase()
-}
-
 // ROUTES
 
 // Show all available endpoints
