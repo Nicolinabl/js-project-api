@@ -1,11 +1,10 @@
 import cors from "cors"
-import express, { application } from "express"
+import express from "express"
 import listEndpoints from "express-list-endpoints"
 import mongoose from "mongoose"
 import "dotenv/config"
 import crypto from "crypto"
 import bcrypt from "bcrypt"
-import 'dotenv/config' 
 
 const mongoUrl = process.env.MONGO_URL || "mongodb://127.0.0.1/messages"
 mongoose.connect(mongoUrl)
@@ -50,7 +49,6 @@ const userSchema = new mongoose.Schema({
   accessToken: {
     type: String,
     default: () => crypto.randomBytes(128).toString('hex')
-    // random access token created using crypto library
   }
 })
 
@@ -58,25 +56,25 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema)
 
 // Look up user based on the access token stored in the header 
-// const authenticateUser = async (req, res, next) => {
-//   try {
-//     const user = await User.findOne({ 
-//       accessToken: req.header('Authorization').replace("Bearer ", ""),
-//     })
-//     if (user){
-//       req.user = user
-//       // next function allows the protected endpoint to continue execution
-//       next()
-//     } else {
-//       res.status(401).json({
-//         message: "Authentication missing or invalid",
-//         loggedOut: true 
-//       })
-//     }
-//   } catch (error) {
-//     res.status(500).json({ message: "Internal server error", error: error.message })
-//   }
-// }
+const authenticateUser = async (req, res, next) => {
+  try {
+    const user = await User.findOne({ 
+      accessToken: req.header('Authorization').replace("Bearer ", ""),
+    })
+    if (user){
+      req.user = user
+      // next function allows the protected endpoint to continue execution
+      next()
+    } else {
+      res.status(401).json({
+        message: "Authentication missing or invalid",
+        loggedOut: true 
+      })
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message })
+  }
+}
 
 // Seed database
 if (process.env.RESET_DATABASE) {
@@ -277,8 +275,7 @@ app.patch("/messages/:id/like", async (req, res) => {
 // TODO UPDATE a message
 
 // POST-route: post a message 
-// TODO: authenticateUser
-app.post('/messages', async (req, res) => {
+app.post('/messages', authenticateUser, async (req, res) => {
   try {
     const message = new Message({
       message: req.body.message,
