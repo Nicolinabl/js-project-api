@@ -7,6 +7,7 @@ import crypto from "crypto"
 import bcrypt from "bcrypt"
 
 const mongoUrl = process.env.MONGO_URL || "mongodb://127.0.0.1/messages"
+// move
 mongoose.connect(mongoUrl)
 
 const port = process.env.PORT || 8080
@@ -29,6 +30,11 @@ const messageSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   }
 })
 
@@ -55,7 +61,6 @@ const userSchema = new mongoose.Schema({
 // User model
 const User = mongoose.model('User', userSchema)
 
-// Look up user based on the access token stored in the header 
 const authenticateUser = async (req, res, next) => {
   try {
     const user = await User.findOne({ 
@@ -63,7 +68,6 @@ const authenticateUser = async (req, res, next) => {
     })
     if (user){
       req.user = user
-      // next function allows the protected endpoint to continue execution
       next()
     } else {
       res.status(401).json({
@@ -126,11 +130,6 @@ app.post('/users/signup', async (req, res) => {
     })
   }
 })
-
-// app.get('/secrets', authenticateUser)
-// app.get('/secrets', (req, res) => {
-//   res.json({secret: 'This is a super secret message'})
-// })
 
 // POST-route: log in (doesnt create the user, it finds one)
 app.post('/users/login', async (req, res) => {
@@ -243,14 +242,35 @@ app.patch("/messages/:id/like", async (req, res) => {
   }
 })
 
-// TODO UPDATE a message
+// UPDATE a message
+app.patch('/messages/:id', authenticateUser, async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.id)
+
+    if (!message) {
+      return res.status(404).json({ error: "Message not found" })
+    }
+
+    if (message.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json ({ error: "You can only edit your own messages" })
+    }
+
+    message.message = req.body.message || message.message
+    await message.save()
+
+    res.json(message)
+  } catch (error) {
+    res.status(400).json({ error: "Invalid message-id or request" })
+  }
+})
 
 // POST-route: post a message 
 app.post('/messages', authenticateUser, async (req, res) => {
   try {
     const message = new Message({
       message: req.body.message,
-      hearts: req.body.hearts
+      hearts: req.body.hearts,
+      userId: req.user._id
     })
     await message.save()
     res.status(200).json(message)
@@ -261,14 +281,21 @@ app.post('/messages', authenticateUser, async (req, res) => {
 })
 
 // DELETE-route: delete a message
-app.delete("/messages/:id", async (req, res) => {
+app.delete("/messages/:id", authenticateUser, async (req, res) => {
   try {
     const deletedMessage = await Message.findByIdAndDelete(req.params.id)
 
     if (!deletedMessage) {
       return res.status(404).json({ error: "Message not found" })
     } 
-    res.status(200).json(deletedMessage)
+
+    if (deletedMessage.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: "You can only delete your own message" })
+    }
+
+    await deletedMessage.deleteOne()
+
+    res.status(200).json({ success: true })
   } catch (error) {
     res.status(400).json({ error: "Invalid message id" })
   }
@@ -279,16 +306,3 @@ app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`)
 })
 
-
-
-// GET liked messages (query param)
-// TODO Error handling
-// app.get("/hearts", (req, res) => {
-//   let result = data
-
-//   if (req.query.liked === "true") {
-//     result = result.filter(message => message.hearts > 0)
-//   }
-
-//   res.json(result)
-//  })
